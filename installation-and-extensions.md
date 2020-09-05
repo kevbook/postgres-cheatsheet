@@ -19,7 +19,6 @@ SELECT * FROM pg_extension;
 ```
 
 - List of available pg extension in the catalog
-
 ```sql
 SELECT * FROM pg_available_extensions;
 ```
