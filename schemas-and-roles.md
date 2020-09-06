@@ -32,10 +32,11 @@ CREATE TABLE "public"."{table name}"(id SERIAL);
 
 ## Users and Roles
 
-| Statement | Permission | Object | Role |  
-| --------- | ---------- | ------ | ---- |
-| GRANT     | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | ON (Object) | TO |
-| REVOKE    | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | ON (Object) | FROM |
+| Statement     | Privileges                            | Object Type           | Role                   |  
+| ------------- | ------------------------------------- | --------------------- | ---------------------- |
+| GRANT, REVOKE | CONNECT, CREATE, TEMPORARY, ALL       | DATABASE              | TO {role}, FROM {role} |
+| GRANT, REVOKE | CREATE, USAGE, ALL                    | SCHEMA                | TO {role}, FROM {role} |
+| GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW, SEQUENCE | TO {role}, FROM {role} |	
 
 ```sql
 -- Get list roles with attributes and membership
@@ -97,35 +98,25 @@ GRANT CONNECT ON DATABASE "{database name}" TO "labs_readonly";
 GRANT USAGE ON SCHEMA "{schema name}" TO "labs_readonly";
 
 -- To grant the labs_readonly access to select tables and views
-GRANT SELECT ON TABLE "mytable1", "mytable2" TO "labs_readonly";
+-- GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLE "mytable1", "mytable2" IN SCHEMA "{schema name}" TO "labs_readonly";
+GRANT SELECT ON TABLE "mytable1", "mytable2" IN SCHEMA "{schema name}" TO "labs_readonly";
 
 -- To grant the labs_readonly access to all tables and views
+-- GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA "{schema name}" TO "labs_readonly";
 GRANT SELECT ON ALL TABLES IN SCHEMA "{schema name}" TO "labs_readonly";
 
 -- Note that any new tables that get added in the future will not be accessible by the labs_readonly role
 -- To ensure that new tables and views are also accessible
+-- ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLES TO "labs_readonly";
 ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT ON TABLES TO "labs_readonly";
 ```
 
+- Similarly, create two new roles: `labs_readwrite` and `labs_admin`
+- `labs_readwrite` has `SELECT, INSERT, UPDATE, REFERENCES, TRIGGER` privileges
+- `labs_admin` has additional `DELETE, TRUNCATE` privileges
+- For read/write roles, there is normally a requirement to use sequences
+
 ```sql
-# Create readwrite role (inherits PUBLIC by default)
-CREATE ROLE "labs_readwrite" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT NOLOGIN;
-GRANT CONNECT ON DATABASE "{database name}" TO "labs_readwrite";
-GRANT USAGE ON SCHEMA "{schema name}" TO "labs_readwrite";
-
-# To grant the labs_readwrite access to select tables and views
-GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLE "mytable1", "mytable2" TO "labs_readwrite";
-
-# To grant the labs_readwrite access to all tables and views
-GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA "{schema name}" TO "labs_readwrite";
-
-# Note that any new tables that get added in the future will not be accessible by the labs_readwrite role
-# To ensure that new tables and views are also accessible
-ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLES TO "labs_readwrite";
-
-# For read/write roles, there is normally a requirement to use sequences also.
-GRANT USAGE ON SEQUENCE "myseq1", "myseq2" TO "labs_readwrite";
-
 # To grant the labs_readwrite access to all sequences
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA "{schema name}" TO "labs_readwrite";
 
@@ -135,10 +126,12 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT USAGE ON SEQUENCES TO "
 
 ### Users
 
-- Create user and grant it roles
+- Create user and grant it roles. When user is a member of a role, it gets access to all of the privileges granted to the role.
+- However when a role has the `NOINHERIT` attribute, the privileges are not automatically possessed, user must explicitly escalate to the role using `SET ROLE {role name}` in order to access them.
+
 
 ```sql
-CREATE USER "labs_user1" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NHERIT LOGIN PASSWORD 'pass';
+CREATE USER "labs_user1" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION INHERIT LOGIN PASSWORD 'pass';
 
 # Grant user to role
 GRANT "labs_readonly" TO "labs_user1";
@@ -147,12 +140,14 @@ GRANT "labs_readonly" TO "labs_user1";
 REVOKE "labs_readonly" FROM "labs_user1";
 ```
 
-Additionally some of these roles were created with NOINHERIT attribute. As discussed earlier, ordinarily, when one role is a member of a second role, the former gets immediate access to all of the privileges granted to the latter. However when a role has the NOINHERIT attribute, the privileges are not automatically possessed, and the first role must explicitly escalate to the second using SET ROLE in order to access them.
-
 Now user1 can only connect to the cluster, because it does not inherit the privileges of rw_demo12 automatically. In order to view the data, user1 has to explicitly do SET ROLE TO readonly . Likewise, if user1 wants to insert values into certain tables, or CREATE NEW TABLES (which is banned in our proposed solution), user1 needs to SET ROLE TO rw_demo12 . In this way, all new future objects created by user1 or user2 will be owned by rw_demo12 . So you see, this alternative solution is more flexible, but with the sacrifice of user experience.
 
+### Helpers
 
+```sql
+-- Logged in user
+SELECT "current_user"();
 
-LOGIN PASSWORD 'secret_passwd';
-CREATE ROLE username NOINHERIT LOGIN PASSWORD password;
-
+-- User used for permissions
+SELECT "session_user"();
+```
