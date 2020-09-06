@@ -87,13 +87,39 @@ CREATE ROLE "labs_readonly" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT N
 GRANT CONNECT ON DATABASE "{database name}" TO "labs_readonly";
 GRANT USAGE ON SCHEMA "{schema name}" TO "labs_readonly";
 
-# To grant the readonly access to select tables and views
+# To grant the labs_readonly access to select tables and views
 GRANT SELECT ON TABLE "mytable1", "mytable2" TO "labs_readonly";
 
-# To grant the readonly access to all tables and views
+# To grant the labs_readonly access to all tables and views
 GRANT SELECT ON ALL TABLES IN SCHEMA "{schema name}" TO "labs_readonly";
 
 # Note that any new tables that get added in the future will not be accessible by the labs_readonly role
 # To ensure that new tables and views are also accessible
 ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT ON TABLES TO "labs_readonly";
-````
+```
+
+```sql
+# Create readwrite role (inherits PUBLIC by default)
+CREATE ROLE "labs_readwrite" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOLOGIN;
+GRANT CONNECT ON DATABASE "{database name}" TO "labs_readwrite";
+GRANT USAGE ON SCHEMA "{schema name}" TO "labs_readwrite";
+
+# To grant the labs_readwrite access to select tables and views
+GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLE "mytable1", "mytable2" TO "labs_readwrite";
+
+# To grant the labs_readwrite access to all tables and views
+GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON ALL TABLES IN SCHEMA "{schema name}" TO "labs_readwrite";
+
+# Note that any new tables that get added in the future will not be accessible by the labs_readwrite role
+# To ensure that new tables and views are also accessible
+ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE ON TABLES TO "labs_readwrite";
+
+# For read/write roles, there is normally a requirement to use sequences also.
+GRANT USAGE ON SEQUENCE "myseq1", "myseq2" TO "labs_readwrite";
+
+# To grant the labs_readwrite access to all sequences
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA "{schema name}" TO "labs_readwrite";
+
+# To automatically grant permissions to sequences added in the future
+ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT USAGE ON SEQUENCES TO "labs_readwrite";
+```
