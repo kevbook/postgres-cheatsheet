@@ -38,6 +38,10 @@ CREATE TABLE "public"."{table name}"(id SERIAL);
 | GRANT, REVOKE | CREATE, USAGE, ALL                    | SCHEMA                | TO {role}, FROM {role} |
 | GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW, SEQUENCE | TO {role}, FROM {role} |	
 
+> https://www.postgresql.org/docs/current/sql-grant.html
+
+> https://gpdb.docs.pivotal.io/560/admin_guide/roles_privs.html
+
 ```sql
 -- Get list roles with attributes and membership
 SELECT *,
@@ -112,11 +116,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT ON TABLES TO "la
 ```
 
 - Similarly, create two new roles: `labs_readwrite` and `labs_admin`
-- `labs_readwrite` has `SELECT, INSERT, UPDATE, REFERENCES, TRIGGER` privileges
-- `labs_admin` has additional `DELETE, TRUNCATE` privileges
-- For read/write roles, there is normally a requirement to use sequences
+- `labs_readwrite` has `SELECT, INSERT, UPDATE, REFERENCES, TRIGGER` privileges.
+- `labs_admin` has additional `CREATE SCHEMA` privileges. 
+- `labs_admin` has additional `DELETE, TRUNCATE ON TABLES` privileges. 
+- For read/write roles, there is normally a requirement to use sequences `USAGE ON ALL SEQUENCES`.
 
 ```sql
+-- labs_admin needs an additional 
+GRANT CREATE SCHEMA "{schema name}" TO "labs_admin";
+
 # To grant the labs_readwrite access to all sequences
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA "{schema name}" TO "labs_readwrite";
 
