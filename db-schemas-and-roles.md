@@ -1,4 +1,4 @@
-## Schemas
+## Overview
 
 ```
 |-------------------------------------------|---|
@@ -12,9 +12,21 @@
 -------------------------------------------------
 ```
 
-- Schema is a namespace that contains named database objects such as tables, views, indexes, data types, functions, stored procedures and operators. 
-- Schema's enable multiple users to use one database without interfering with each other. 
-- If you do not explicitly specify a schema, `pubic` schema will be used (based on search path). The search path is a list of schema names that postgres checks when you don’t use a qualifier to the database object. 
+## Database
+
+```sql
+-- Create database
+CREATE DATABASE {database name};
+
+-- Delete database
+DROP DATABASE {database name};
+```
+
+## Schemas
+
+- Schema is a namespace that contains named database objects such as tables, views, indexes, data types, functions, stored procedures and operators.
+- Schema's enable multiple users to use one database without interfering with each other.
+- If you do not explicitly specify a schema, `pubic` schema will be used (based on search path). The search path is a list of schema names that postgres checks when you don’t use a qualifier to the database object.
 
 ```sql
 -- View the schemas search path
@@ -25,39 +37,42 @@ SHOW search_path; # "$user", public
 -- Create new schema
 CREATE SCHEMA "{schema name}";
 
--- Below two statements are the same (public schema is used by default based on search path) 
+-- Below two statements are the same (public schema is used by default based on search path)
 CREATE TABLE "{table name}"(id SERIAL);
 CREATE TABLE "public"."{table name}"(id SERIAL);
 ```
 
 ## Users and Roles
 
-| Statement     | Privileges                            | Object Type           | Role                   |  
-| ------------- | ------------------------------------- | --------------------- | ---------------------- |
-| GRANT, REVOKE | CONNECT, CREATE, TEMPORARY, ALL       | DATABASE              | TO {role}, FROM {role} |
-| GRANT, REVOKE | CREATE, USAGE, ALL                    | SCHEMA                | TO {role}, FROM {role} |
-| GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW, SEQUENCE | TO {role}, FROM {role} |	
+| Statement | Privileges | Object Type | Role |
+| --------- | ---------- | ----------- | ---- |
+| GRANT, REVOKE | CONNECT, CREATE, TEMPORARY, ALL | DATABASE | TO {role}, FROM {role} |
+| GRANT, REVOKE | CREATE, USAGE, ALL | SCHEMA | TO {role}, FROM {role} |
+| GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW, SEQUENCE | TO {role}, FROM {role} |
 
 > https://www.postgresql.org/docs/current/sql-grant.html
 
 > https://gpdb.docs.pivotal.io/560/admin_guide/roles_privs.html
 
 ```sql
--- Get list roles with attributes and membership
+-- Get list roles with attributes and memberships
 SELECT *,
   ARRAY(SELECT b.rolname
     FROM pg_catalog.pg_auth_members m
     JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)
     WHERE m.member = r.oid) as memberof
-FROM pg_catalog.pg_roles r
-WHERE r.rolname NOT IN ('pg_signal_backend','pg_read_all_settings','pg_read_all_stats','pg_stat_scan_tables','pg_monitor',
-                        'pg_read_server_files','pg_write_server_files','pg_execute_server_program',
-                        'rds_iam','rds_replication','rds_superuser','rdsadmin','rdsrepladmin')
-ORDER BY 1;
+  FROM pg_catalog.pg_roles r
+  WHERE r.rolname NOT IN ('pg_signal_backend','pg_read_all_settings',
+                          'pg_read_all_stats','pg_stat_scan_tables',
+                          'pg_monitor','pg_read_server_files',
+                          'pg_write_server_files','pg_execute_server_program',
+                          'rds_iam','rds_replication',
+                          'rds_superuser','rdsadmin','rdsrepladmin')
+  ORDER BY 1;
 
 -- Get list roles with object permissions
-SELECT * FROM information_schema.table_privileges 
-WHERE grantee NOT IN ('PUBLIC','postgres');
+SELECT * FROM information_schema.table_privileges
+  WHERE grantee NOT IN ('PUBLIC','postgres');
 ```
 
 ```sql
@@ -117,12 +132,12 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT ON TABLES TO "la
 
 - Similarly, create two new roles: `labs_readwrite` and `labs_admin`
 - `labs_readwrite` has `SELECT, INSERT, UPDATE, REFERENCES, TRIGGER` privileges.
-- `labs_admin` has additional `CREATE SCHEMA` privileges. 
-- `labs_admin` has additional `DELETE, TRUNCATE ON TABLES` privileges. 
+- `labs_admin` has additional `CREATE SCHEMA` privileges.
+- `labs_admin` has additional `DELETE, TRUNCATE ON TABLES` privileges.
 - For read/write roles, there is normally a requirement to use sequences `USAGE ON ALL SEQUENCES`.
 
 ```sql
--- labs_admin needs an additional 
+-- labs_admin needs an additional
 GRANT CREATE SCHEMA "{schema name}" TO "labs_admin";
 
 # To grant the labs_readwrite access to all sequences
@@ -148,14 +163,33 @@ GRANT "labs_readonly" TO "labs_user1";
 REVOKE "labs_readonly" FROM "labs_user1";
 ```
 
-Now user1 can only connect to the cluster, because it does not inherit the privileges of rw_demo12 automatically. In order to view the data, user1 has to explicitly do SET ROLE TO readonly . Likewise, if user1 wants to insert values into certain tables, or CREATE NEW TABLES (which is banned in our proposed solution), user1 needs to SET ROLE TO rw_demo12 . In this way, all new future objects created by user1 or user2 will be owned by rw_demo12 . So you see, this alternative solution is more flexible, but with the sacrifice of user experience.
+
+- When creating an object or table (or apply any DDL), DO NOT use the session/logged in user, as postgres will assign the session/logged in user as the `tableowner` (when creating the object).
+- `session user` should use the `admin` role to apply changes.
+
+```sql
+-- View sogged in session user
+SELECT "session_user"();
+
+-- Use admin role
+SET ROLE TO "labs_admin";
+-- Check while role is being used for the permissions
+SELECT "current_user"();
+
+-- APPLY any DDL changes
+CREATE TABLE "{schema name}"."{table name}"(id SERIAL);
+SELECT * from pg_tables WHERE tablename = "{schema name}"."{table name}";
+```
 
 ### Helpers
 
 ```sql
 -- Logged in user
+SELECT "session_user"();
+
+-- User used for permissions when using SET ROLE
 SELECT "current_user"();
 
--- User used for permissions
-SELECT "session_user"();
+-- View table owner
+SELECT * from pg_tables WHERE tablename = '{table name}';
 ```

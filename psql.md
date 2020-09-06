@@ -1,9 +1,6 @@
 ## Psql
 
-- Start interactive pg-shell
-```shell
-$ psql -d {database name}
-```
+- Start interactive pg-shell `$ psql -d {database name}`
 
 - To quit psql, either works `\q` or `exit`
 
@@ -23,12 +20,10 @@ $ psql -d {database name}
 
 - List all databases `\l+`
 
-- Delete a database `DROP DATABASE {database name};`
-
 - List tables and views `\dp` and `\dt+`
 
 - Describe table `\d+ {table_name}`
 
 - Edit the last SQL statement and execute upon exit `\e`
 
-- the last SQL statement `\g`
+- The last SQL statement `\g`
