@@ -1,0 +1,22 @@
+{
+  "name": "pg-scripts",
+  "private": true,
+  "main": "index.js",
+  "dependencies": {
+    "larg": "^0.0.4",
+    "lodash": "^4.17.20",
+    "pg": "^8.3.3"
+  },
+  "devDependencies": {
+    "semistandard": "^14.2.3",
+    "snazzy": "^8.0.0"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "lint": "semistandard | snazzy",
+    "format": "semistandard --fix"
+  },
+  "engines": {
+    "node": "^12"
+  }
+}

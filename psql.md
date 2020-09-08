@@ -22,6 +22,8 @@
 
 - List tables and views `\dp` and `\dt+`
 
+- List all stored procedures and functions `\df+`
+
 - Describe table `\d+ {table_name}`
 
 - Edit the last SQL statement and execute upon exit `\e`

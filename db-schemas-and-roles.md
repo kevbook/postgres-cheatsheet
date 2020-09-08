@@ -48,7 +48,8 @@ CREATE TABLE "public"."{table name}"(id SERIAL);
 | --------- | ---------- | ----------- | ---- |
 | GRANT, REVOKE | CONNECT, CREATE, TEMPORARY, ALL | DATABASE | TO {role}, FROM {role} |
 | GRANT, REVOKE | CREATE, USAGE, ALL | SCHEMA | TO {role}, FROM {role} |
-| GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW, SEQUENCE | TO {role}, FROM {role} |
+| GRANT, REVOKE | SELECT, INSERT, UPDATE, REFERENCES, TRIGGER, DELETE, TRUNCATE, ALL | TABLE, VIEW | TO {role}, FROM {role} |
+| GRANT, REVOKE | USAGE, SELECT, UPDATE, ALL | SEQUENCE | TO {role}, FROM {role} |
 
 > https://www.postgresql.org/docs/current/sql-grant.html
 
@@ -57,40 +58,47 @@ CREATE TABLE "public"."{table name}"(id SERIAL);
 ```sql
 -- Get list roles with attributes and memberships
 SELECT *,
-  ARRAY(SELECT b.rolname
-    FROM pg_catalog.pg_auth_members m
-    JOIN pg_catalog.pg_roles b ON (m.roleid = b.oid)
-    WHERE m.member = r.oid) as memberof
-  FROM pg_catalog.pg_roles r
-  WHERE r.rolname NOT IN ('pg_signal_backend','pg_read_all_settings',
+  ARRAY(SELECT t3.rolname
+    FROM pg_catalog.pg_auth_members t2
+    JOIN pg_catalog.pg_roles t3 ON (t2.roleid = t3.oid)
+    WHERE t1.oid = t2.member) as memberof
+  FROM pg_catalog.pg_roles t1
+  WHERE t1.rolname NOT IN ('pg_signal_backend','pg_read_all_settings',
                           'pg_read_all_stats','pg_stat_scan_tables',
                           'pg_monitor','pg_read_server_files',
                           'pg_write_server_files','pg_execute_server_program',
                           'rds_iam','rds_replication',
                           'rds_superuser','rdsadmin','rdsrepladmin')
   ORDER BY 1;
-
--- Get list roles with object permissions
-SELECT * FROM information_schema.table_privileges
-  WHERE grantee NOT IN ('PUBLIC','postgres');
 ```
 
 ```sql
-SELECT grantee, table_schema, table_name, ARRAY_TO_STRING(ARRAY_AGG(privilege_type), ', ') AS grants
-FROM information_schema.role_table_grants
-WHERE table_schema NOT IN ('information_schema','pg_catalog')
-GROUP BY table_name, table_schema, grantee;
-
-SELECT * FROM information_schema.role_usage_grants WHERE grantee != 'PUBLIC'
-GROUP BY table_name, table_schema, grantee;
-
-SELECT * FROM information_schema.role_usage_grants WHERE grantee = 'labs_readonly';
-
-SELECT * FROM information_schema.role_table_grants WHERE grantee = 'labs_readonly';
-SELECT * FROM information_schema.role_column_grants WHERE grantee = '{user}';
-SELECT * FROM information_schema.role_routine_grants WHERE grantee = '{user}';
-SELECT * FROM information_schema.role_udt_grants WHERE grantee = '{user}';
+-- View permissions/grants
+SELECT
+    -- https://www.postgresql.org/message-id/hh1us5$4pk$1@news.hub.org
+    grantor as object_owner,
+    grantee,
+    table_schema AS object_schema,
+    'TABLE' as object_type,
+    table_name as object_name,
+    array_agg(privilege_type) AS privileges
+  FROM information_schema.table_privileges
+  WHERE table_schema NOT IN ('information_schema','pg_catalog')
+  GROUP BY grantor, grantee, table_schema, table_name
+UNION
+SELECT
+    grantor as object_owner,
+    grantee,
+    object_schema,
+    object_type,
+    object_name,
+    STRING_TO_ARRAY(privilege_type, ',') AS privileges
+  FROM information_schema.usage_privileges
+  WHERE grantee != 'PUBLIC'
+ORDER BY 1;
 ```
+
+**Note:** Build privilege viewer using functions https://www.postgresql.org/docs/current/functions-info.html
 
 ### Roles
 
@@ -140,11 +148,11 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT SELECT ON TABLES TO "la
 -- labs_admin needs an additional
 GRANT CREATE SCHEMA "{schema name}" TO "labs_admin";
 
-# To grant the labs_readwrite access to all sequences
-GRANT USAGE ON ALL SEQUENCES IN SCHEMA "{schema name}" TO "labs_readwrite";
+-- To grant the labs_readwrite access to all sequences
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA "{schema name}" TO "labs_readwrite";
 
-# To automatically grant permissions to sequences added in the future
-ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT USAGE ON SEQUENCES TO "labs_readwrite";
+-- To automatically grant permissions to sequences added in the future
+ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT USAGE, SELECT ON SEQUENCES TO "labs_readwrite";
 ```
 
 ### Users
@@ -152,17 +160,15 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA "{schema name}" GRANT USAGE ON SEQUENCES TO "
 - Create user and grant it roles. When user is a member of a role, it gets access to all of the privileges granted to the role.
 - However when a role has the `NOINHERIT` attribute, the privileges are not automatically possessed, user must explicitly escalate to the role using `SET ROLE {role name}` in order to access them.
 
-
 ```sql
 CREATE USER "labs_user1" WITH NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION INHERIT LOGIN PASSWORD 'pass';
 
-# Grant user to role
+-- Grant user to role
 GRANT "labs_readonly" TO "labs_user1";
 
-# Revoke user from role
+-- Revoke user from role
 REVOKE "labs_readonly" FROM "labs_user1";
 ```
-
 
 - When creating an object or table (or apply any DDL), DO NOT use the session/logged in user, as postgres will assign the session/logged in user as the `tableowner` (when creating the object).
 - `session user` should use the `admin` role to apply changes.
