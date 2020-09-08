@@ -78,8 +78,14 @@ CREATE UNIQUE INDEX "idx_unique_column1_column2"
 
 - You have to create indexes on `FOREIGN KEY` if you want them.
 - `FOREIGN KEY` can be `NULL` unless you do not want that.
+- Cannot be a computed column.
 - If you use primary-foreign-keys, like 2 FK's as a PK in a M-to-N table, you will have an index on the PK and probably don't need to create any extra indexes.
 - `ON { UPDATE | DELETE } RESTRICT` will restrict any changes to be made to the referenced column.
+
+.
+Foreign key columns must be indexed.
+
+If you are adding the `FOREIGN KEY` constraint to an existing table. `CREATE INDEX` and then use that to the `ADD CONSTRAINT` statement to add the FOREIGN KEY constraint to the column.
 
 ```sql
 ALTER TABLE "{schema name}"."{table name}"
@@ -101,6 +107,17 @@ ALTER TABLE "{schema name}"."{table name}"
     CHECK (price > discount AND price > 10);
 ```
 
+### `DEFERRABLE` Constraints
+
+- [See this](https://hashrocket.com/blog/posts/deferring-database-constraints#deferrable-constraints)
+- Constraints are immediately enforced. This behavior can be changed within a transaction by changing a constraints deferrable characteristics. By default constraints are `NOT DEFERRABLE`
+- Checking of constraints that are deferrable can be postponed until the end of the transaction. `DEFERRABLE INITIALLY IMMEDIATE` or `DEFERRABLE INITIALLY DEFERRED`.
+  + `INITIALLY IMMEDIATE` the constraint will by default behave just like a non-deferrable constraint, checking every statement immediately.
+  + `INITIALLY DEFERRED` the constraint will defer its checks until the transaction is committed.
+- It's a good idea to use the `INITIALLY IMMEDIATE` option, until we explicitly opt in to the deferral `SET CONSTRAINTS "{constraint name} DEFERRED`
+- `UNIQUE, PRIMARY KEY, EXCLUDE, and REFERENCES (foreign key)` constraints accept this clause. `NOT NULL and CHECK` constraints are not deferrable.
+- Note that deferrable constraints cannot be used as conflict arbitrators in an INSERT statement that includes an ON CONFLICT DO UPDATE clause.
+
 ## Columns
 
 ```sql
@@ -120,3 +137,22 @@ ALTER TABLE  "{column name}"
   ALTER COLUMN [SET DEFAULT "{value}" | DROP DEFAULT];
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
