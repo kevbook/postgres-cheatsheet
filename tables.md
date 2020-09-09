@@ -80,18 +80,32 @@ CREATE UNIQUE INDEX "idx_unique_column1_column2"
 - `FOREIGN KEY` can be `NULL` unless you do not want that.
 - Cannot be a computed column.
 - If you use primary-foreign-keys, like 2 FK's as a PK in a M-to-N table, you will have an index on the PK and probably don't need to create any extra indexes.
-- `ON { UPDATE | DELETE } RESTRICT` will restrict any changes to be made to the referenced column.
-
-.
-Foreign key columns must be indexed.
-
-If you are adding the `FOREIGN KEY` constraint to an existing table. `CREATE INDEX` and then use that to the `ADD CONSTRAINT` statement to add the FOREIGN KEY constraint to the column.
+- `ON { UPDATE | DELETE } RESTRICT` will restrict any changes to be made to the referenced column. https://www.postgresqltutorial.com/postgresql-foreign-key/
 
 ```sql
 ALTER TABLE "{schema name}"."{table name}"
   ADD CONSTRAINT "fkey_column" FOREIGN KEY ("{column name}")
     REFERENCES "{schema name}"."{table2 name2}" ("{column name}")
     ON { UPDATE | DELETE } { RESTRICT | CASCADE }
+
+-- Set the referenced value on UPDATE or DELETE to NULL (action statement)
+ALTER TABLE "{schema name}"."{table name}"
+  ADD CONSTRAINT "fkey_column" FOREIGN KEY ("{column name}")
+    REFERENCES "{schema name}"."{table2 name2}" ("{column name}")
+    ON { UPDATE | DELETE } { action statement }
+
+{ action statement } = [ SET NULL | SET DEFAULT | RESTRICT | NO ACTION | CASCADE ]
+```
+
+- If you are adding the `FOREIGN KEY` constraint to an existing table. `CREATE INDEX` and then use that to the `ADD CONSTRAINT` statement to add the FOREIGN KEY constraint to the column. https://www.cybertec-postgresql.com/en/index-your-foreign-key/
+
+```sql
+CREATE INDEX CONCURRENTLY "idx_column"
+  ON "{schema name}"."{table name}" USING btree ("{column name}")
+
+ALTER TABLE "{schema name}"."{table name}"
+  ADD CONSTRAINT "idx_column" FOREIGN KEY ("{column name}")
+    REFERENCES "{schema name}"."{table2 name2}" ("{column name}")
 ```
 
 ### `CHECK` Constraint
@@ -118,6 +132,13 @@ ALTER TABLE "{schema name}"."{table name}"
 - `UNIQUE, PRIMARY KEY, EXCLUDE, and REFERENCES (foreign key)` constraints accept this clause. `NOT NULL and CHECK` constraints are not deferrable.
 - Note that deferrable constraints cannot be used as conflict arbitrators in an INSERT statement that includes an ON CONFLICT DO UPDATE clause.
 
+## `REINDEX`ing
+
+- `REINDEX` command will lock the table for any write operations. Use `CONCURRENTLY`
+- To figure out indexes that a table has and the corresponding bloat percentage for each of them, you can use this query (we picked it up from PgHero’s codebase). https://gist.github.com/mbanck/9976015/71888a24e464e2f772182a7eb54f15a125edf398
+- https://github.com/ankane/pghero
+- https://ankane.org/introducing-dexter
+
 ## Columns
 
 ```sql
@@ -135,24 +156,4 @@ ALTER TABLE "{schema name}"."{table name}"
 -- Set or remove a default value for a column:
 ALTER TABLE  "{column name}"
   ALTER COLUMN [SET DEFAULT "{value}" | DROP DEFAULT];
-
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

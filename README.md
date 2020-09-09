@@ -7,10 +7,14 @@ Postgres Cheatsheet
 4. [Tables](/tables.md)
 5. [Views](/views.md)
 6. [Transactions](/transactions.md)
+7. [Arrays](/arrays.md)
+8. [JSON](/json.md)
+9. [HStore](/hstore.md)
 
 ### Other References
 
 1. https://github.com/zquangu112z/PostgreSQL-Cheatsheet/blob/master/cheatsheet.pdf
+2. http://postgresguide.com/
 
 ### Scripts usage
 
