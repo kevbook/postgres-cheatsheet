@@ -1,15 +1,15 @@
 Postgres Cheatsheet
 ===============================
 
-1. [Installation and extensions](/installation-and-extensions.md)
-2. [Psql](/psql.md)
-3. [DB, Schemas and roles](/db-schemas-and-roles.md)
-4. [Tables](/tables.md)
-5. [Views](/views.md)
-6. [Transactions](/transactions.md)
-7. [Arrays](/arrays.md)
-8. [JSON](/json.md)
-9. [HStore](/hstore.md)
+1. [Installation and extensions](/docs/installation-and-extensions.md)
+2. [Psql](/docs/psql.md)
+3. [DB, Schemas and roles](/docs/db-schemas-and-roles.md)
+4. [Tables](/docs/tables.md)
+5. [Views](/docs/views.md)
+6. [Transactions](/docs/transactions.md)
+7. [Arrays](/docs/arrays.md)
+8. [JSON](/docs/json.md)
+9. [HStore](/docs/hstore.md)
 
 ### Other References
 

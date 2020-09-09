@@ -36,18 +36,18 @@ ALTER TABLE "{schema name}"."{table name}"
 - Expression indexes are useful for queries that match on some function or modification of your data. See example below. [See here](https://devcenter.heroku.com/articles/postgresql-indexes)
 
 ```sql
-CREATE INDEX CONCURRENTLY `idx_column`
+CREATE INDEX CONCURRENTLY "idx_column"
   ON "{schema name}"."{table name}" USING btree ("{column name}"
     [ ASC | DESC ] [ NULLS { FIRST | LAST } ]);
 
 -- Partial Index
-CREATE INDEX CONCURRENTLY `idx_column`
+CREATE INDEX CONCURRENTLY "idx_column"
   ON "{schema name}"."{table name}" USING btree ("{column name}"
     [ ASC | DESC ] [ NULLS { FIRST | LAST } ])
   WHERE "user_active" = TRUE;
 
 -- Expression indexes
-CREATE INDEX CONCURRENTLY `idx_column`
+CREATE INDEX CONCURRENTLY "idx_column"
   ON "{schema name}"."{table name}" (lower(email));
 ```
 
