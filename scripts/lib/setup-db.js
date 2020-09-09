@@ -6,7 +6,12 @@ module.exports = async function ({ db, schemas = [] }) {
   /**
    * Create db
    */
-  sql.push(`CREATE DATABASE IF NOT EXISTS "${db}";`);
+  sql.push(`CREATE DATABASE "${db}";`);
+
+  /**
+   * Drop default database "postgres"
+   */
+  sql.push('DROP DATABASE "postgres";');
 
   /**
    * Create schemas

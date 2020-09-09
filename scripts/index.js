@@ -1,5 +1,6 @@
 'use strict';
 
+require('dotenv').config();
 const Pg = require('pg');
 const args = require('larg')(process.argv.slice(2));
 args.cmd = String(args._); // build cmd
@@ -7,10 +8,6 @@ args.cmd = String(args._); // build cmd
 (async function main () {
   // Init PG database
   const pg = new Pg.Client({
-    host: '127.0.0.1', // env PGHOST
-    user: undefined, // env PGUSER
-    database: undefined, // env PGDATABASE
-    password: undefined, // env PGPASSWORD
     ssl: false
   });
   await pg.connect();

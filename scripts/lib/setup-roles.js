@@ -17,15 +17,15 @@ function createRole ({ db, schemas, role, grants, sequences = false }) {
   // Grant usage on schemas
   schemas.forEach(function (schema) {
     // Grant usage on schema
-    sql.push(`GRANT USAGE ON ${grants.toString()} "${schema}" TO "${role}";`);
+    sql.push(`GRANT USAGE ON SCHEMA "${schema}" TO "${role}";`);
 
     // Grant access to tables and views on the schema
     sql.push(`GRANT ${grants.toString()} ON ALL TABLES IN SCHEMA "${schema}" TO "${role}";`);
-    sql.push(`GRANT ${grants.toString()} ON ALL VIEWS IN SCHEMA "${schema}" TO "${role}";`);
+    // sql.push(`GRANT ${grants.toString()} ON ALL VIEWS IN SCHEMA "${schema}" TO "${role}";`);
 
     // To ensure that new tables and views are also accessible
     sql.push(`ALTER DEFAULT PRIVILEGES IN SCHEMA "${schema}" GRANT ${grants.toString()} ON TABLES TO "${role}";`);
-    sql.push(`ALTER DEFAULT PRIVILEGES IN SCHEMA "${schema}" GRANT ${grants.toString()} ON VIEWS TO "${role}";`);
+    // sql.push(`ALTER DEFAULT PRIVILEGES IN SCHEMA "${schema}" GRANT ${grants.toString()} ON VIEWS TO "${role}";`);
 
     // Grant access to sequences
     if (sequences) {
