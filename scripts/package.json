@@ -3,6 +3,7 @@
   "private": true,
   "main": "index.js",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "larg": "^0.0.4",
     "lodash": "^4.17.20",
     "pg": "^8.3.3"
